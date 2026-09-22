@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>夜晚的对话</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      height: 100%;
+      background: #0a1020;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+      color: #ffffff;
+      overscroll-behavior: none;
+      overflow: hidden;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 32px 24px;
+      padding-top: calc(32px + env(safe-area-inset-top));
+      padding-bottom: calc(32px + env(safe-area-inset-bottom));
+    }
+
+    .stage {
+      width: 100%;
+      max-width: 380px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 48px;
+    }
+
+    /* 提问文字 —— 浮现 1 秒 */
+    .question {
+      font-size: 20px;
+      line-height: 1.7;
+      text-align: center;
+      color: #ffffff;
+      letter-spacing: 0.5px;
+      min-height: 3.4em;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 1s ease, color 1.2s ease, font-size 1.2s ease;
+      padding: 0 8px;
+      white-space: pre-wrap;
+    }
+
+    .question.visible {
+      opacity: 1;
+    }
+
+    .options {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      opacity: 0;
+      transition: opacity 1s ease;
+      pointer-events: none;
+    }
+
+    .options.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .option-btn {
+      width: 100%;
+      min-height: 52px;
+      padding: 14px 24px;
+      background: transparent;
+      border: 1px solid rgba(180, 195, 225, 0.32);
+      border-radius: 12px;
+      color: #ffffff;
+      font-size: 16px;
+      font-family: inherit;
+      letter-spacing: 1px;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    .option-btn.appear {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .option-btn:active {
+      background: rgba(180, 195, 225, 0.08);
+      border-color: rgba(180, 195, 225, 0.6);
+      color: #ffffff;
+    }
+
+    .option-btn.disabled {
+      border-color: rgba(90, 100, 120, 0.2);
+      color: rgba(120, 130, 150, 0.35);
+      pointer-events: none;
+    }
+
+    .float-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 10;
+    }
+
+    .float-word {
+      position: absolute;
+      color: #ff4d5e;
+      font-weight: 600;
+      white-space: nowrap;
+      opacity: 0;
+      transform: scale(0.8);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      text-shadow: 0 0 12px rgba(255, 60, 80, 0.4);
+    }
+
+    .float-word.show {
+      opacity: 1;
+      transform: scale(1);
+    }
+
+    /* 最终告白 —— 浮现 2 秒 */
+    .final-word {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #ffffff;
+      font-size: 26px;
+      letter-spacing: 3px;
+      line-height: 1.8;
+      opacity: 0;
+      transition: opacity 2s ease;
+      z-index: 20;
+      padding: 0 32px;
+      white-space: pre-wrap;
+      text-shadow: none;
+    }
+
+    .final-word.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="stage" id="stage">
+    <div class="question" id="question"></div>
+    <div class="options" id="options"></div>
+  </div>
+
+  <div class="float-layer" id="floatLayer"></div>
+  <div class="final-word" id="finalWord"></div>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const questionEl = document.getElementById('question');
+    const optionsEl = document.getElementById('options');
+    const floatLayer = document.getElementById('floatLayer');
+    const finalWord = document.getElementById('finalWord');
+
+    const story = {
+      start: {
+        text: '晚上好，今天过得怎么样？',
+        choices: [
+          { text: '很好', next: 'askNight' },
+          { text: '一般', next: 'askNight' },
+          { text: '不好', next: 'askNight' }
+        ]
+      },
+
+      askNight: {
+        text: '愿意来分享我的夜晚吗？',
+        choices: [
+          { text: '愿意', next: 'thanks' },
+          { text: '不愿意', next: 'askNight', repeat: true }
+        ]
+      },
+
+      thanks: {
+        text: '谢谢你 (⑅•ᴗ•⑅)\n我们认识很久了吗？',
+        choices: [
+          { text: '当然', next: 'important' },
+          { text: '并没有', next: 'important' }
+        ]
+      },
+
+      important: {
+        text: '我对你来说重要吗？',
+        choices: [
+          { text: '重要', next: 'love1' },
+          { text: '并没有', next: 'love1' }
+        ]
+      },
+
+      love1: {
+        text: '哈哈，无论真心还是谎言都没关系，\n我想问的是，你在爱我吗？',
+        choices: [
+          { text: '是的', next: 'love2' },
+          { text: '不', next: 'love2' }
+        ]
+      },
+
+      love2: {
+        text: '你在爱我吗？',
+        big: true,
+        choices: [
+          { text: '是的', next: 'love3' },
+          { text: '不', next: 'love3' }
+        ]
+      },
+
+      love3: {
+        text: '你在爱我吗？',
+        big: true,
+        red: true,
+        gray: true,
+        choices: [
+          { text: '是的' },
+          { text: '不' }
+        ]
+      }
+    };
+
+    let currentId = 'start';
+    let isTransitioning = false;
+
+    function render(id) {
+      const node = story[id];
+      if (!node) return;
+
+      currentId = id;
+      isTransitioning = true;
+
+      questionEl.style.fontSize = '';
+      questionEl.style.color = '#ffffff';
+
+      questionEl.classList.remove('visible');
+      optionsEl.classList.remove('visible');
+
+      setTimeout(() => {
+        optionsEl.innerHTML = '';
+        questionEl.textContent = node.text;
+
+        if (node.big) questionEl.style.fontSize = '34px';
+        if (node.red) questionEl.style.color = '#ff4d5e';
+
+        requestAnimationFrame(() => {
+          questionEl.classList.add('visible');
+        });
+
+        setTimeout(() => {
+          node.choices.forEach((choice, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.textContent = choice.text;
+
+            if (node.gray) {
+              btn.classList.add('disabled');
+            } else {
+              btn.addEventListener('click', () => {
+                if (isTransitioning) return;
+                handleChoice(choice);
+              });
+            }
+
+            optionsEl.appendChild(btn);
+
+            setTimeout(() => {
+              btn.classList.add('appear');
+            }, i * 180 + 100);
+          });
+
+          requestAnimationFrame(() => {
+            optionsEl.classList.add('visible');
+          });
+
+          const totalDelay = node.choices.length * 180 + 400;
+          setTimeout(() => {
+            isTransitioning = false;
+
+            if (node.gray) {
+              setTimeout(() => {
+                startFlood();
+              }, 1200);
+            }
+          }, totalDelay);
+
+        }, 900);
+
+      }, 700);
+    }
+
+    function handleChoice(choice) {
+      isTransitioning = true;
+
+      questionEl.classList.remove('visible');
+      optionsEl.classList.remove('visible');
+
+      setTimeout(() => {
+        if (choice.repeat) {
+          render(currentId);
+          return;
+        }
+        if (choice.restart) {
+          render('start');
+          return;
+        }
+        render(choice.next);
+      }, 800);
+    }
+
+    function startFlood() {
+      stage.style.transition = 'opacity 1s ease';
+      stage.style.opacity = '0';
+
+      const text = '你在爱我吗？';
+      const startTime = performance.now();
+      const totalDuration = 6700;
+      let timer = null;
+
+      const placed = [];
+
+      function isOverlapping(x, y, w, h) {
+        for (const p of placed) {
+          const margin = 6;
+          if (
+            x < p.x + p.w + margin &&
+            x + w + margin > p.x &&
+            y < p.y + p.h + margin &&
+            y + h + margin > p.y
+          ) {
+            return true;
+          }
+        }
+        return false;
+      }
+
+      function spawn() {
+        const now = performance.now();
+        const elapsed = now - startTime;
+
+        if (elapsed >= totalDuration) {
+          clearTimeout(timer);
+          floatLayer.innerHTML = '';
+          showFinal();
+          return;
+        }
+
+        let delay;
+        if (elapsed < 2200) delay = 500;
+        else if (elapsed < 4400) delay = 300;
+        else delay = 150;
+
+        const span = document.createElement('div');
+        span.className = 'float-word';
+        span.textContent = text;
+
+        const size = 14 + Math.random() * 26;
+        span.style.fontSize = size + 'px';
+
+        span.style.left = '-9999px';
+        span.style.top = '-9999px';
+        floatLayer.appendChild(span);
+
+        const w = span.offsetWidth;
+        const h = span.offsetHeight;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+
+        let x, y, tries = 0;
+        do {
+          x = Math.random() * Math.max(1, vw - w);
+          y = Math.random() * Math.max(1, vh - h);
+          tries++;
+        } while (isOverlapping(x, y, w, h) && tries < 40);
+
+        placed.push({ x, y, w, h });
+
+        span.style.left = x + 'px';
+        span.style.top = y + 'px';
+        span.style.opacity = 0.55 + Math.random() * 0.45;
+
+        requestAnimationFrame(() => {
+          span.classList.add('show');
+        });
+
+        timer = setTimeout(spawn, delay);
+      }
+
+      spawn();
+    }
+
+    function showFinal() {
+      finalWord.textContent = '我爱你，晚安';
+      finalWord.style.color = '#ffffff';
+      finalWord.style.textShadow = 'none';
+      requestAnimationFrame(() => {
+        finalWord.classList.add('visible');
+      });
+    }
+
+    setTimeout(() => {
+      render('start');
+    }, 600);
+
+  </script>
+</body>
+</html>
