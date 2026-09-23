@@ -432,13 +432,12 @@
 
         if (elapsed >= totalDuration) {
           clearTimeout(timer);
-
-
-          showFinal();
-
-          return;
-        }
-
+// 保持 2 秒不动，再开始淡出
+  setTimeout(() => {
+    showFinal();
+  }, 2000);
+  return;
+    }
         let delay;
 
         if (elapsed < 3300) {
