@@ -269,30 +269,34 @@
 
         setTimeout(() => {
           node.choices.forEach((choice, i) => {
-            const btn = document.createElement('button');
-            btn.className = 'option-btn';
-            btn.textContent = choice.text;
-            btn.type = 'button';
+  const btn = document.createElement('button');
+  btn.className = 'option-btn';
+  btn.textContent = choice.text;
+  btn.type = 'button';
 
-            if (node.gray) {
-              btn.classList.add('disabled');
-            } else {
-              // pointerup：安卓手机上响应更可靠
-              btn.addEventListener('pointerup', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (locked) return;
-                handleChoice(choice);
-              });
-            }
+  if (node.gray) {
+    btn.classList.add('disabled');
+  } else {
+    // 用 touchstart + click 双保险
+    let fired = false;
+    const handler = function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (locked || fired) return;
+      fired = true;
+      setTimeout(() => { fired = false; }, 500);
+      handleChoice(choice);
+    };
+    btn.addEventListener('touchstart', handler, { passive: false });
+    btn.addEventListener('click', handler);
+  }
 
-            optionsEl.appendChild(btn);
+  optionsEl.appendChild(btn);
 
-            setTimeout(() => {
-              btn.classList.add('appear');
-            }, i * 180 + 100);
-          });
-
+  setTimeout(() => {
+    btn.classList.add('appear');
+  }, i * 180 + 100);
+});
           requestAnimationFrame(() => {
             optionsEl.classList.add('visible');
           });
