@@ -16,7 +16,7 @@
     html,
     body {
       height: 100%;
-      background: #0a1020;
+      background: radial-gradient(ellipse at 50% 0%, #16284a 0%, #0c1830 45%, #060d1c 100%);
       font-family:
         -apple-system,
         BlinkMacSystemFont,
@@ -37,7 +37,7 @@
       padding: 32px 24px;
       padding-top: calc(32px + env(safe-area-inset-top));
       padding-bottom: calc(32px + env(safe-area-inset-bottom));
-    }
+   background: transparent; }
 
     .stage {
       position: relative;
@@ -146,7 +146,7 @@
 
     .float-word {
       position: absolute;
-      color: #ff4d5e;
+      color: #ff1a2e;
       font-weight: 600;
       white-space: nowrap;
       opacity: 0;
@@ -156,7 +156,7 @@
         opacity 0.4s ease,
         transform 0.4s ease;
 
-      text-shadow: 0 0 12px rgba(255, 60, 80, 0.4);
+      text-shadow: 0 0 14px rgba(255, 26, 46, 0.6);
     }
 
     .float-word.show {
@@ -312,7 +312,7 @@
         }
 
         if (node.red) {
-          questionEl.style.color = '#ff4d5e';
+          questionEl.style.color = '#ff1a2e';
         }
 
         requestAnimationFrame(() => {
@@ -403,7 +403,7 @@
       const text = '你在爱我吗？';
 
       const startTime = performance.now();
-      const totalDuration = 6700;
+      const totalDuration = 10000;
 
       let timer = null;
 
@@ -433,7 +433,6 @@
         if (elapsed >= totalDuration) {
           clearTimeout(timer);
 
-          floatLayer.innerHTML = '';
 
           showFinal();
 
@@ -442,12 +441,12 @@
 
         let delay;
 
-        if (elapsed < 2200) {
-          delay = 500;
-        } else if (elapsed < 4400) {
+        if (elapsed < 3300) {
           delay = 300;
-        } else {
+        } else if (elapsed < 6600) {
           delay = 150;
+        } else {
+          delay = 50;
         }
 
         const span = document.createElement('div');
@@ -509,16 +508,24 @@
     }
 
     function showFinal() {
-      finalWord.textContent = '我爱你，晚安';
+  // 先让刷屏文字缓慢变浅消失（2秒）
+  const words = document.querySelectorAll('.float-word');
+  words.forEach(w => {
+    w.style.transition = 'opacity 2s ease';
+    w.style.opacity = '0';
+  });
 
-      finalWord.style.color = '#ffffff';
-      finalWord.style.textShadow = 'none';
-
-      requestAnimationFrame(() => {
-        finalWord.classList.add('visible');
-      });
-    }
-
+  // 等 2 秒后，再浮现最后一句
+  setTimeout(() => {
+    floatLayer.innerHTML = '';
+    finalWord.textContent = '我爱你，晚安';
+    finalWord.style.color = '#ffffff';
+    finalWord.style.textShadow = 'none';
+    requestAnimationFrame(() => {
+      finalWord.classList.add('visible');
+    });
+  }, 2000);
+}
     setTimeout(() => {
       render('start');
     }, 600);
