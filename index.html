@@ -250,11 +250,9 @@
       currentId = id;
       locked = true;
 
-      // 重置样式
       questionEl.style.fontSize = '';
       questionEl.style.color = '#ffffff';
 
-      // 淡出旧内容
       questionEl.classList.remove('visible');
       optionsEl.classList.remove('visible');
 
@@ -279,7 +277,8 @@
             if (node.gray) {
               btn.classList.add('disabled');
             } else {
-              btn.addEventListener('click', function (e) {
+              // pointerup：安卓手机上响应更可靠
+              btn.addEventListener('pointerup', function (e) {
                 e.preventDefault();
                 e.stopPropagation();
                 if (locked) return;
