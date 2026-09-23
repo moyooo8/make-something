@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Good night</title>
+
   <style>
     * {
       margin: 0;
@@ -12,10 +13,17 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    html, body {
+    html,
+    body {
       height: 100%;
       background: #0a1020;
-      font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Helvetica Neue", "Microsoft YaHei", sans-serif;
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "PingFang SC",
+        "Helvetica Neue",
+        "Microsoft YaHei",
+        sans-serif;
       color: #ffffff;
       overscroll-behavior: none;
       overflow: hidden;
@@ -32,6 +40,8 @@
     }
 
     .stage {
+      position: relative;
+      z-index: 1;
       width: 100%;
       max-width: 380px;
       display: flex;
@@ -51,7 +61,10 @@
       align-items: center;
       justify-content: center;
       opacity: 0;
-      transition: opacity 1s ease, color 1.2s ease, font-size 1.2s ease;
+      transition:
+        opacity 1s ease,
+        color 1.2s ease,
+        font-size 1.2s ease;
       padding: 0 8px;
       white-space: pre-wrap;
     }
@@ -76,18 +89,32 @@
     }
 
     .option-btn {
+      position: relative;
+      z-index: 2;
+
       width: 100%;
       min-height: 52px;
       padding: 14px 24px;
+
       background: transparent;
       border: 1px solid rgba(180, 195, 225, 0.32);
       border-radius: 12px;
+
       color: #ffffff;
       font-size: 16px;
       font-family: inherit;
       letter-spacing: 1px;
+
       cursor: pointer;
-      transition: all 0.4s ease;
+      touch-action: manipulation;
+
+      transition:
+        background 0.4s ease,
+        border-color 0.4s ease,
+        color 0.4s ease,
+        opacity 0.4s ease,
+        transform 0.4s ease;
+
       opacity: 0;
       transform: translateY(8px);
     }
@@ -124,7 +151,11 @@
       white-space: nowrap;
       opacity: 0;
       transform: scale(0.8);
-      transition: opacity 0.4s ease, transform 0.4s ease;
+
+      transition:
+        opacity 0.4s ease,
+        transform 0.4s ease;
+
       text-shadow: 0 0 12px rgba(255, 60, 80, 0.4);
     }
 
@@ -133,20 +164,33 @@
       transform: scale(1);
     }
 
+    /*
+      关键修复：
+      final-word 即使 opacity 为 0，
+      也不能挡住下面的按钮。
+    */
     .final-word {
       position: fixed;
       inset: 0;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       text-align: center;
       color: #ffffff;
+
       font-size: 26px;
       letter-spacing: 3px;
       line-height: 1.8;
+
       opacity: 0;
+      pointer-events: none;
+
       transition: opacity 2s ease;
+
       z-index: 20;
+
       padding: 0 32px;
       white-space: pre-wrap;
       text-shadow: none;
@@ -154,9 +198,11 @@
 
     .final-word.visible {
       opacity: 1;
+      pointer-events: none;
     }
   </style>
 </head>
+
 <body>
 
   <div class="stage" id="stage">
@@ -242,6 +288,7 @@
 
     function render(id) {
       const node = story[id];
+
       if (!node) {
         console.error('找不到节点:', id);
         return;
@@ -260,8 +307,13 @@
         optionsEl.innerHTML = '';
         questionEl.textContent = node.text;
 
-        if (node.big) questionEl.style.fontSize = '34px';
-        if (node.red) questionEl.style.color = '#ff4d5e';
+        if (node.big) {
+          questionEl.style.fontSize = '34px';
+        }
+
+        if (node.red) {
+          questionEl.style.color = '#ff4d5e';
+        }
 
         requestAnimationFrame(() => {
           questionEl.classList.add('visible');
@@ -269,39 +321,39 @@
 
         setTimeout(() => {
           node.choices.forEach((choice, i) => {
-  const btn = document.createElement('button');
-  btn.className = 'option-btn';
-  btn.textContent = choice.text;
-  btn.type = 'button';
+            const btn = document.createElement('button');
 
-  if (node.gray) {
-    btn.classList.add('disabled');
-  } else {
-    // 用 touchstart + click 双保险
-    let fired = false;
-    const handler = function (e) {
-      e.preventDefault();
-      e.stopPropagation();
-      if (locked || fired) return;
-      fired = true;
-      setTimeout(() => { fired = false; }, 500);
-      handleChoice(choice);
-    };
-    btn.addEventListener('touchstart', handler, { passive: false });
-    btn.addEventListener('click', handler);
-  }
+            btn.className = 'option-btn';
+            btn.type = 'button';
+            btn.textContent = choice.text;
 
-  optionsEl.appendChild(btn);
+            if (node.gray) {
+              btn.classList.add('disabled');
+            } else {
+              btn.addEventListener('click', function (e) {
+                e.preventDefault();
 
-  setTimeout(() => {
-    btn.classList.add('appear');
-  }, i * 180 + 100);
-});
+                if (locked) {
+                  return;
+                }
+
+                handleChoice(choice);
+              });
+            }
+
+            optionsEl.appendChild(btn);
+
+            setTimeout(() => {
+              btn.classList.add('appear');
+            }, i * 180 + 100);
+          });
+
           requestAnimationFrame(() => {
             optionsEl.classList.add('visible');
           });
 
           const totalDelay = node.choices.length * 180 + 400;
+
           setTimeout(() => {
             locked = false;
 
@@ -318,6 +370,10 @@
     }
 
     function handleChoice(choice) {
+      if (locked) {
+        return;
+      }
+
       locked = true;
 
       questionEl.classList.remove('visible');
@@ -328,11 +384,15 @@
           render(currentId);
           return;
         }
+
         if (choice.restart) {
           render('start');
           return;
         }
-        render(choice.next);
+
+        if (choice.next) {
+          render(choice.next);
+        }
       }, 800);
     }
 
@@ -341,8 +401,10 @@
       stage.style.opacity = '0';
 
       const text = '你在爱我吗？';
+
       const startTime = performance.now();
       const totalDuration = 6700;
+
       let timer = null;
 
       const placed = [];
@@ -350,6 +412,7 @@
       function isOverlapping(x, y, w, h) {
         for (const p of placed) {
           const margin = 6;
+
           if (
             x < p.x + p.w + margin &&
             x + w + margin > p.x &&
@@ -359,6 +422,7 @@
             return true;
           }
         }
+
         return false;
       }
 
@@ -368,44 +432,71 @@
 
         if (elapsed >= totalDuration) {
           clearTimeout(timer);
+
           floatLayer.innerHTML = '';
+
           showFinal();
+
           return;
         }
 
         let delay;
-        if (elapsed < 2200) delay = 500;
-        else if (elapsed < 4400) delay = 300;
-        else delay = 150;
+
+        if (elapsed < 2200) {
+          delay = 500;
+        } else if (elapsed < 4400) {
+          delay = 300;
+        } else {
+          delay = 150;
+        }
 
         const span = document.createElement('div');
+
         span.className = 'float-word';
         span.textContent = text;
 
         const size = 14 + Math.random() * 26;
+
         span.style.fontSize = size + 'px';
 
         span.style.left = '-9999px';
         span.style.top = '-9999px';
+
         floatLayer.appendChild(span);
 
         const w = span.offsetWidth;
         const h = span.offsetHeight;
+
         const vw = window.innerWidth;
         const vh = window.innerHeight;
 
-        let x, y, tries = 0;
+        let x;
+        let y;
+        let tries = 0;
+
         do {
           x = Math.random() * Math.max(1, vw - w);
           y = Math.random() * Math.max(1, vh - h);
-          tries++;
-        } while (isOverlapping(x, y, w, h) && tries < 40);
 
-        placed.push({ x, y, w, h });
+          tries++;
+
+        } while (
+          isOverlapping(x, y, w, h) &&
+          tries < 40
+        );
+
+        placed.push({
+          x,
+          y,
+          w,
+          h
+        });
 
         span.style.left = x + 'px';
         span.style.top = y + 'px';
-        span.style.opacity = 0.55 + Math.random() * 0.45;
+
+        span.style.opacity =
+          0.55 + Math.random() * 0.45;
 
         requestAnimationFrame(() => {
           span.classList.add('show');
@@ -419,8 +510,10 @@
 
     function showFinal() {
       finalWord.textContent = '我爱你，晚安';
+
       finalWord.style.color = '#ffffff';
       finalWord.style.textShadow = 'none';
+
       requestAnimationFrame(() => {
         finalWord.classList.add('visible');
       });
@@ -430,5 +523,6 @@
       render('start');
     }, 600);
   </script>
+
 </body>
 </html>
